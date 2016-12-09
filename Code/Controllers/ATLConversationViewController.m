@@ -1209,7 +1209,9 @@ static NSInteger const ATLPhotoActionSheet = 1000;
           forChangeType:(LYRQueryControllerChangeType)type
            newIndexPath:(NSIndexPath *)newIndexPath
 {
+    if (self.collectionView.window == nil) return;
     if (self.expandingPaginationWindow) return;
+    
     NSInteger currentIndex = indexPath ? [self.conversationDataSource collectionViewSectionForQueryControllerRow:indexPath.row] : NSNotFound;
     NSInteger newIndex = newIndexPath ? [self.conversationDataSource collectionViewSectionForQueryControllerRow:newIndexPath.row] : NSNotFound;
     [self.objectChanges addObject:[ATLDataSourceChange changeObjectWithType:type newIndex:newIndex currentIndex:currentIndex]];
@@ -1222,6 +1224,12 @@ static NSInteger const ATLPhotoActionSheet = 1000;
 
 - (void)queryControllerDidChangeContent:(LYRQueryController *)queryController
 {
+    if (self.collectionView.window == nil) {
+        [self.collectionView reloadData];
+        [self.collectionView layoutIfNeeded];
+        return;
+    }
+    
     NSArray *objectChanges = [self.objectChanges copy];
     [self.objectChanges removeAllObjects];
     
