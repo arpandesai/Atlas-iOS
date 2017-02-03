@@ -53,6 +53,8 @@
 @property (nonatomic) dispatch_queue_t animationQueue;
 @property (nonatomic) BOOL expandingPaginationWindow;
 
+
+
 @end
 
 @implementation ATLConversationViewController

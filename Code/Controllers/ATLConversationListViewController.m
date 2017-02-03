@@ -22,6 +22,7 @@
 #import "ATLConversationListViewController.h"
 #import "ATLMessagingUtilities.h"
 
+
 static NSString *const ATLConversationCellReuseIdentifier = @"ATLConversationCellReuseIdentifier";
 static NSString *const ATLImageMIMETypePlaceholderText = @"Attachment: Image";
 static NSString *const ATLVideoMIMETypePlaceholderText = @"Attachment: Video";
@@ -49,15 +50,18 @@ static UIView *ATLMakeLoadingMoreConversationsIndicatorView()
 @property (nonatomic) BOOL showingMoreConversationsIndicator;
 @property (nonatomic, readwrite) UISearchController *searchController;
 
+
 @end
 
 @implementation ATLConversationListViewController
 
-NSString *const ATLConversationListViewControllerTitle = @"Messages";
+NSString *const ATLConversationListViewControllerTitle = @"";
 NSString *const ATLConversationTableViewAccessibilityLabel = @"Conversation Table View";
 NSString *const ATLConversationTableViewAccessibilityIdentifier = @"Conversation Table View Identifier";
-NSString *const ATLConversationListViewControllerDeletionModeMyDevices = @"My Devices";
+NSString *const ATLConversationListViewControllerDeletionModeMyDevices = @"Delete";
 NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyone";
+UIView *ratingView;
+UIVisualEffectView *blurEffectView;
 
 + (instancetype)conversationListViewControllerWithLayerClient:(LYRClient *)layerClient
 {
@@ -116,7 +120,7 @@ NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyo
 {
     [super viewDidLoad];
     
-    self.title = ATLLocalizedString(@"atl.conversationlist.title.key", ATLConversationListViewControllerTitle, nil);
+    self.title = ATLLocalizedString(@"", ATLConversationListViewControllerTitle, nil);
     self.accessibilityLabel = ATLConversationListViewControllerTitle;
     
     self.tableView.accessibilityLabel = ATLConversationTableViewAccessibilityLabel;
@@ -339,6 +343,7 @@ NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyo
     [conversationCell presentConversation:conversation];
     
     if (self.displaysAvatarItem) {
+        
         if ([self.dataSource respondsToSelector:@selector(conversationListViewController:avatarItemForConversation:)]) {
             id<ATLAvatarItem> avatarItem = [self.dataSource conversationListViewController:self avatarItemForConversation:conversation];
             [conversationCell updateWithAvatarItem:avatarItem];
@@ -365,6 +370,7 @@ NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyo
 }
 
 #pragma mark - Reloading Conversations
+
 
 - (void)reloadCellForConversation:(LYRConversation *)conversation
 {
@@ -416,7 +422,8 @@ NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyo
             } else {
                 switch (deletionMode.integerValue) {
                     case LYRDeletionModeMyDevices:
-                        actionColor = [UIColor redColor];
+                        actionColor = [UIColor colorWithRed:39.0/255.0 green:170.0/255.0 blue:190.0/255.0 alpha:1.0];
+                        
                         break;
                     case LYRDeletionModeAllParticipants:
                         actionColor = [UIColor grayColor];
@@ -425,14 +432,64 @@ NSString *const ATLConversationListViewControllerDeletionModeEveryone = @"Everyo
                         break;
                 }
             }
+            
+            
             UITableViewRowAction *deleteAction = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:actionString handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
-                [self deleteConversationAtIndexPath:indexPath withDeletionMode:deletionMode.integerValue];
+              
+            [self deleteConversationAtIndexPath:indexPath withDeletionMode:deletionMode.integerValue];
+               
+            }];
+            
+            
+            UITableViewRowAction *otherAction = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:@" Rate " handler:^(UITableViewRowAction *action, NSIndexPath *indexPath) {
+                 LYRConversation *conversation = [self.queryController objectAtIndexPath:indexPath];
+                
+                ratingView = [[[NSBundle mainBundle] loadNibNamed:@"RatingView" owner:nil options:nil] firstObject];
+                ratingView.backgroundColor = [UIColor whiteColor];
+                
+                
+                
+                if (!UIAccessibilityIsReduceTransparencyEnabled()) {
+                    
+                    UIBlurEffect *blurEffect = [UIBlurEffect effectWithStyle:UIBlurEffectStyleDark];
+                    blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
+                    blurEffectView.frame = self.view.bounds;
+                    blurEffectView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+                    
+                    [self.view addSubview:blurEffectView];
+                }
+                
+                UIButton *btnCancel = [ratingView viewWithTag:51];
+                UIButton *btnDone = [ratingView viewWithTag:52];
+
+                [btnDone addTarget:self action:@selector(btnClicked) forControlEvents:UIControlEventTouchUpInside];
+                [btnCancel addTarget:self action:@selector(btnClicked) forControlEvents:UIControlEventTouchUpInside];
+                
+                ratingView.layer.cornerRadius = 10;
+                ratingView.layer.masksToBounds = YES;
+                ratingView.frame = CGRectMake(self.view.frame.origin.x + 20, self.view.frame.origin.y + 120, self.view.frame.size.width - 40, 200.0f);
+
+                [self.view addSubview:ratingView];
+                [self.view bringSubviewToFront:ratingView];
+
             }];
             deleteAction.backgroundColor = actionColor;
+            otherAction.backgroundColor = [UIColor grayColor];
+            [actions addObject:otherAction];
             [actions addObject:deleteAction];
+            
         }
     }
     return actions;
+}
+
+-(void)btnClicked
+{
+
+    ratingView.removeFromSuperview;
+    blurEffectView.removeFromSuperview;
+//    [self.view bringSubviewToFront:self.tableView];
+    
 }
 
 - (void)tableView:(UITableView *)tableView commitEditingStyle:(UITableViewCellEditingStyle)editingStyle forRowAtIndexPath:(NSIndexPath *)indexPath
